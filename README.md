@@ -5,6 +5,6 @@ The subjects, questions and analysis are all mine. The purpose of this subject w
 
 Dataset : https://www.kaggle.com/datasets/kuchhbhi/2022-march-laptop-data?resource=download
 
-HTML Page : https://julienverliac.github.io/Data-Analysis-Project/
+HTML Page : https://julienverliac.github.io/Programming-on-R-for-Business-Analytics/
 
 Rmarkdown inside the 'docs' folder.
