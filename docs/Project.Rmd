@@ -1,0 +1,287 @@
+---
+title: "Project"
+author: "Julien Verliac"
+date: "08/04/2022"
+output:
+  word_document: default
+  html_document: default
+---
+
+# 1-Introduction and description of the problematic of our subject.
+#The laptop market is a interesting one, our uses of laptop have hugely increase this last year, with the recent pandemic and the growth of remote working, but also due to the evolution and transformation of work from a physical to numerical support, the laptop market has surely a long future in front of him until a more powerful and smart tool appears. As a consequence, what are the best laptops? Which laptop for who? How manufacturers adapt theirs products ?
+This is what we are going to solve by building different tools for both customers and manufacturers so they can both adapt their offer and demand.
+
+# 2-Presentation of the data.
+#The dataset of this project is named "Cleaned-Laptop_data.csv", It shows different factors that can affect laptop prices, ratings, review and more... The factors goes from the brand name, throught the core, to the size of the screen and even more.It has 23 columns and 896 entries.
+
+# 3-Explanatory data analysis
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(knitr)
+library(tidyverse)
+```
+
+#First of all lets import the dataframe, we dowload it from https://www.kaggle.com/datasets/kuchhbhi/2022-march-laptop-data?resource=download
+
+#By just downloading it, II already have a problem, indeed my Csv came with all its data into one column. So I split the data through columns inside the csv itself with a coma delimiter and then I bring it into R specifying it.
+
+```{r}
+laptop.df <- read.csv("Cleaned_Laptop_Data.csv", head = TRUE, sep=";")
+view(laptop.df)
+str(laptop.df)
+```
+
+#Thankfully, the dataset we chose has already been cleaned, as a consequence, all the columns and rows are cleaned properly, and the structure of each column is good to go. A brief explanation of each variable : 
+#brand is the brand name of the laptop
+#model is the model form the laptop brand
+#processor_brand is the brand who made the processor
+#processor_genrtn is the generation of the processor 
+#ram_gb is the ram of the laptop in terms og gigabite
+#ram_type is the type of ram
+#ssd is the ssd
+#hdd is the hdd
+#os is the the variable indicating if the laptop has an os inside it when sell
+#os_bit is the version of the os
+#graphic_card_gb is the graphic card
+#weight is a description of the weight of the laptop
+#display_size is the size of the screen of the laptop
+#warranty is the fact if the laptop is selled with warranty
+#Touchscreen means if the laptop has a touchscreen
+#msoffice is telling us if the laptop has the microsoft office included inside (word,excel etc...)
+#latest_price is the cureent price
+#olded_price was the price before the current one
+#discount means if the laptop is selled with a discount
+#star_rating is the rating gave by buyers
+#ratings is the number of ratings
+#reviews is the number of comments let to each laptop
+
+
+
+#I told you everyhting was good on the table, but did you notice something? You're right ! Prices are in Indian Rupee ! Lets try to turn the prices into $ to have a more precise and international price.
+
+```{r}
+#First it is important to know that at the 08/04/2022 1 Indian Rupee = 0.013 US Dollars.
+library(lubridate)
+laptop.df2 = laptop.df
+laptop.df2$latest_price_dollars <- laptop.df$latest_price*0.013
+laptop.df2$old_price_dollars <- laptop.df$old_price*0.013
+
+#Now that we are good, we want to get rid off the Indian rupee columns ! 
+laptop.df2$old_price <- NULL
+laptop.df2$latest_price <- NULL
+head(laptop.df2)
+```
+
+#Now lets rearrange the columns to get it as it was before.
+
+
+```{r}
+library(dplyr)
+laptop.df2 <- laptop.df2[,c("brand","model", "processor_name", "processor_gnrtn",
+               "ram_gb", "ram_type", "ssd", "hdd", "os", "os_bit", "graphic_card_gb", "weight","display_size","warranty", "Touchscreen", "msoffice", "old_price_dollars", "latest_price_dollars","discount", "star_rating", "ratings", "reviews")]
+
+laptop.df2 %>%
+  head(20)
+```
+
+
+#Our data is really good now! We manipulate it, but lets dig deeper the analyze ! As we said in the presentation, we want to create tools that helps customer to choose their laptop ! As a customer myself, the first thing I do is to review the feedback of laptops and their rankings in differents tests.
+
+#What is the brand which got the best stars ratings?
+
+```{r}
+#We create a table with mean of stars per brand
+
+mean_per_brand_table<-laptop.df2 %>% 
+  select(brand, star_rating) %>% 
+  group_by(brand) %>% 
+  summarise(mean_star_rating=round(mean(star_rating, na.rm=TRUE),2)) %>% 
+  arrange(mean_star_rating)
+
+```
+
+#The brand with the best rating is Apple ! Followed by realme, Alienware, Nokia and Redmibook !
+
+#We've seen what are the best brands on the market depending on their stars rating, but lets dig the data a bit deeper if we want to facilitate our choice. We cannot choose our laptop only depending of the ratings given by customer ! Some people want to keep on a certain brand, others want a specifical optimization of their hardware such as processors, presence of os, touchescreen size etc... We will then create a tool with pipes and filter that would allow us to choose a laptop depending on the criterias filtered.
+
+#For instance, lets see what are the top 5 laptop with a Core i3 processor, Windows as an os, under 500 $, with a rating score above 3.50 for each brand.
+
+```{r}
+laptop.df2 %>%
+  filter(processor_name == "Core i3",
+         os == "Windows",
+         latest_price_dollars <= 500,
+         star_rating >= 3.50) %>%
+  arrange(latest_price_dollars)%>%
+  group_by(brand)%>%
+  slice(1:5)
+
+#It seems that the price is a  little bit too low, lets increase it so we can have a more diverse selection of brands
+
+laptop.df2 %>%
+  filter(processor_name == "Core i3",
+         os == "Windows",
+         latest_price_dollars <= 900,
+         star_rating >= 3.50) %>%
+  arrange(latest_price_dollars)%>%
+  group_by(brand)%>%
+  slice(1:5)
+
+#We cant see the Apple products, which are the one with the best rating stars as we saw previously, it is because these brand do not use the Core I3 processors, neither windows.
+
+laptop.df2 %>%
+  filter(latest_price_dollars <=900,
+         star_rating >= 3.50) %>%
+  arrange(latest_price_dollars)%>%
+  group_by(brand)%>%
+  slice(1:5)
+
+#We still cant see the Apple products ! These brand must definitely be very expensive ! 
+
+laptop.df2 %>%
+  filter(star_rating >= 3.50) %>%
+  arrange(latest_price_dollars)%>%
+  group_by(brand)%>%
+  slice(1:5)
+
+```
+
+#We have now the data and tools to choose the laptop that we want! Its perfect ! But those tables don't make it easy to have on overview on it, lets build some visualization tools.
+
+# 4-Visualization of the data
+
+#Lets begin the visualization as we started the analysis by creating a classic plot showing the mean of ratings per each brand ! 
+
+```{r}
+library(ggplot2)
+mean_per_brand_table %>%
+  ggplot(aes(x=mean_star_rating, y=brand))+
+  geom_point()+
+  geom_smooth(method = "lm", se = FALSE)+
+  labs(title = "Mean of ratings per brand")
+```
+
+#The plot is good, but a barplot would be more appropriate to have a better visibility on it ! 
+
+```{r}
+library(ggplot2)
+mean_per_brand_table %>%
+  ggplot(aes(x=mean_star_rating, y=brand))+
+  geom_bar(stat = 'identity', fill="Blue")+
+  theme_grey() +
+  labs(title = "Mean of ratings per brand")
+```
+#As wepreviously saw, the top 5 brands per star rating are again Apple ! Followed realme, Alienware, Nokia and Redmibook 
+
+#We previously created a tool that helped us to select the best laptops according to the features we chose. It is good but we also want to have a better view on it, and so far, we havent adapted to a manufacturer point of view in order to get a better sales strategy, lets to do it on a manufacturer point of view, by obeserving it depending on which component laptops perform better.
+
+#We create then a box plot showing which laptop get the best star_rating depending on its processor, as I stated before, the idea of this project is to create toolsto help both manufacturers and byers, so each of them can modify those tools according to theirs criterias.
+
+```{r}
+laptop.df2 %>%
+ggplot(aes(x=star_rating,y=processor_name, color=processor_name)) + 
+  geom_boxplot()+
+  scale_color_brewer(palette="Dark2") + 
+  geom_jitter(shape=16, position=position_jitter(0.2))+
+  labs(title = 'Which processor performed better in term of sales?',
+       y='Core type',x='Rating')
+
+#Since there are information about cores missing, the boxplot is a bit messy, lets create a dataframe  with only the processors recorded and then make the plot
+
+laptop_processor_df <- laptop.df2
+laptop_processor_df <- laptop.df2 %>%
+  filter(processor_name == "5"|
+         processor_name == "A6-9225 Processor"|
+         processor_name == "APU Dual"|
+         processor_name == "Athlon Dual"|
+         processor_name == "Celeron Dual"|
+         processor_name == "Core"|
+         processor_name == "Core i3")%>%
+  arrange(processor_name)%>%
+  group_by(brand)
+
+#creation of the plot
+
+laptop_processor_df %>%
+ggplot(aes(x=star_rating,y=processor_name, color=processor_name)) + 
+  geom_boxplot()+
+  scale_color_brewer(palette="Dark2") + 
+  geom_jitter(shape=16, position=position_jitter(0.2))+
+  labs(title = 'Which processor performed better in term of sales?',
+       y='Core type',x='Rating')
+
+  
+```
+
+#As we can see, the processor that performed the best if we take account what is inside the plots and not the outplayers, is the Core i3! 
+
+#Since the data has been messy and the criterias we chose are not the best, lets create another boxplot with a data recorded for all the laptops : the display screen size.
+
+```{r}
+laptop.df2 %>%
+ggplot(aes(x=star_rating,y=display_size, color=display_size)) + 
+  geom_boxplot()+
+  scale_color_brewer(palette="Dark2") + 
+  geom_jitter(shape=16, position=position_jitter(0.2))+
+  labs(title = 'Which size of screen performed better in term of sales?',
+       y='Screen size',x='Rating')
+
+#Again the data is a bit messy, and the plot take in account screen size that are 0 which means that the information isnt given, but the plot is much less messy than the processors one, again lets add a filter
+
+laptop_display_df <- laptop.df2
+laptop_display_df <- laptop.df2 %>%
+  filter(display_size == "12"|
+         display_size == "12.2"|
+         display_size == "13"|
+         display_size == "13.3"|
+         display_size == "13.4"|
+         display_size == "13.5"|
+         display_size == "14")%>%
+  arrange(processor_name)%>%
+  group_by(brand)
+
+#creation of the plot
+
+laptop_display_df %>%
+ggplot(aes(x=star_rating,y=display_size, color=display_size)) + 
+  geom_boxplot()+
+  scale_color_brewer(palette="Dark2") + 
+  geom_jitter(shape=16, position=position_jitter(0.2))+
+  labs(title = 'Which size of screen performed better in term of sales?',
+       y='Screen size',x='Rating')
+
+```
+
+#As we can see on this second plot, the display sizes laptop that pleased the most the buyers (if again we take account what is inside the plots and not the outplayers), is the 14 ' size ! Followed by the 13.3 and  13.4 ones! 
+
+#We created tools for customers and manufacturers ! It is good to create such tools, but if we were at the place of manufacturers, we would also have not only tools that report our results but also ones that allow us to predict what we will create to be even more efficient in the future. In order to do so, we need to build a tool that allow us to observ the correlation between the ratings and the feature that we choose, so the features which have the best correlation will allow us to build laptops answering the demand of customers.
+
+#Previously, we have seen that Apple was the brand with the best ratings, but it is also the brand with the highest prices, which led us to this question : Is the rating correlated to the price for each brand ? Lets create a Correlation plot to investigate this.
+
+```{r}
+correlation_plot_df = laptop.df2[,c(1,18,20)]
+
+res = cor(correlation_plot_df[,-1])
+res
+
+library("Hmisc")
+res2 <- rcorr(as.matrix(correlation_plot_df[,-1]))
+
+library(corrplot)
+corrplot(res, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45)
+
+```
+#As we can see on this little graph, the rating is higly correlated to the price of the laptop, which means that the laptops with high prices are synonyms of quality for the buyers.
+
+# 5-Interpretation/Conclusion
+#As we wanted to, we created tools that allow customers to choose theirs laptops depending on theirs tastes and features they care about, we walso created tools for manufacturers, and we create visualization tools that show what I just said and even more for the manufacturers so they can be more predictive ! I hope you've been pleased by work and if you need any further information or have better codes and tools ! Dont be shy and comment my work !
+
+# 6-References
+#Mr Uros Gudnov and his courses for some codes
+#sthda, stackoverflow, cfss.uchicago.edu, towardsdatascience and others websites
+#kaggle for the dataset, which you can find here : https://www.kaggle.com/datasets/kuchhbhi/2022-march-laptop-data?resource=download
+
+
+
